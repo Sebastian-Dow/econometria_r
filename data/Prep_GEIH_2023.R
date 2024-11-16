@@ -8,7 +8,7 @@ library(tidyverse)
 library(janitor)
 
 # Definir directorio de trabajo
-setwd("C:\\Users\\sergio.barona\\Desktop\\econometria_r\\data\\")
+setwd("C:\\Users\\Portatil\\Desktop\\econometria_r\\data\\")
 
 ##-------------------------------------------##
 ## Primero: cargar ambos módulos (2023)      ##-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -55,6 +55,7 @@ df.ocup.geih$id <- paste0(df.ocup.geih$directorio,"-", df.ocup.geih$secuencia_p,
 df.ocup.geih$id_hogar <- paste0(df.ocup.geih$directorio,"-", df.ocup.geih$secuencia_p)
 
 # Crear id hogares
+df.car.geih$id <- paste0(df.car.geih$directorio,"-", df.car.geih$secuencia_p,"-", df.car.geih$orden)
 df.car.geih$id_hogar <- paste0(df.car.geih$directorio,"-", df.car.geih$secuencia_p)
 
 # Excluir variables
@@ -168,6 +169,7 @@ writexl::write_xlsx(sub.ocup, "output//GEIH_Ocupados_012023_122023.xlsx")
 ##-------------------------------------------------------------##
 
 keep.car <- c(
+  "id",                              # Llave persona
   "id_hogar",                        # Llave hogar
   "p3271",                           # Sexo
   "p6040",                           # Edad
@@ -215,7 +217,7 @@ car$edad_25_ne <- ifelse(car$edad >= 25 &
 car$salud <- ifelse(car$p6090 == 1, 1, 0)
 
 # Seleccionar variables finales para el módulo de características generales
-sub.car = car %>% select(id_hogar, sexo, edad, edad_sqr, edu,
+sub.car = car %>% select(id, id_hogar, sexo, edad, edad_sqr, edu,
                          grado, anios_edu, jefe, edad_25_ne, salud)
 
 writexl::write_xlsx(sub.car, "output//GEIH_CaractHogar_012023_122023.xlsx")
