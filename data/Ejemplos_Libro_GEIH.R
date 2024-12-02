@@ -8,8 +8,7 @@
 # Cap 2
 library(tidyverse)
 library(readxl)
-
-library(ggplot2) # Cambiar gráficos
+library(ggplot2)
 
 # Cap 3
 library(nortest)
@@ -47,7 +46,7 @@ inner_data <- inner_join(ocupados, hogares, by = c("id", "id_hogar"))
 # Seleccionar columnas                   #
 # -------------------------------------- #
 data <- inner_data %>%
-  select(area, inglabo, asal, meses_trab, sexo, edad, edu, anios_edu)
+  select(area, inglabo, asal, sexo, edad, edu, anios_edu)
 # Crear variable asal en vez de seleccionarla (inglabo > 0? 1: 0)
 
 # -------------------------------------- #
@@ -59,10 +58,8 @@ data <- data %>% na.omit()
 # Filtrar datos                          #
 # -------------------------------------- #
 data <- data %>%
-  filter(asal == 1) # & inglabo > 0) %>% # Asalariados entre 18 y 65 años 
+  filter(asal == 1) %>% # & inglabo > 0) %>% # Asalariados entre 18 y 65 años 
   drop_na() # Eliminar registros con NA para las variables
-
-nrow(dplyr::filter(data, inglabo == 0))
 
 # -------------------------------------- #
 # Submuestra y estandarización           #
@@ -96,7 +93,7 @@ stats_by_sex <- data %>%
   )
 
 stats_by_edu <- data %>%
-  group_by(anios_edu) %>%
+  group_by(anios_edu) %>%tf
   summarise(
     mean_inglabo = mean(inglabo, na.rm = TRUE),
     sd_inglabo = sd(inglabo, na.rm = TRUE),
@@ -108,66 +105,64 @@ stats_by_edu <- data %>%
 # -------------------------------------- #
 # Gráficas                               #
 # -------------------------------------- #
-# Configuración del espacio gráfico
-# par(mfrow = c(2, 2))
-par(mfrow = c(1, 1))
 
 # Histograma: Distribución de Edades
-hist(data$edad,
-     main = "Distribución de Edades",
-     xlab = "Edad",
-     col = "skyblue", border = "white")
+ggplot(data, aes(x = edad)) +
+  geom_histogram(fill = "darkorange", color = "white", bins = 20) +
+  labs(title = "Distribución de Edades", x = "Edad", y = "Frecuencia") +
+  theme_minimal()
 
 # Scatterplot: Edad vs Ingreso Laboral
-plot(data$edad, data$inglabo,
-     main = "Relación entre Edad e Ingreso Laboral",
-     xlab = "Edad",
-     ylab = "Ingreso Laboral",
-     col = "darkgreen", pch = 16)
+ggplot(data, aes(x = edad, y = inglabo)) +
+  geom_point(color = "darkblue", alpha = 0.6) +
+  labs(title = "Relación entre Edad e Ingreso Laboral", x = "Edad", y = "Ingreso Laboral") +
+  theme_minimal()
 
-# Boxplot: Ingreso por Sexo # 6e+06
-boxplot(data$inglabo ~ data$sexo,
-        main = "Distribución de Ingresos por Sexo",
-        xlab = "Sexo (0 = Hombre, 1 = Mujer)",
-        ylab = "Ingreso Laboral",
-        col = c("lightblue", "pink")) # Cambiar color
+# Boxplot: Ingreso por Sexo
+ggplot(data, aes(x = as.factor(sexo), y = inglabo, fill = as.factor(sexo))) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("lightgreen", "purple")) +
+  labs(
+    title = "Distribución de Ingresos por Sexo",
+    x = "Sexo (0 = Hombre, 1 = Mujer)",
+    y = "Ingreso Laboral",
+    fill = "Sexo"
+  ) +
+  theme_minimal()
 
 # Boxplot: Ingreso por Nivel Educativo
-boxplot(data$inglabo ~ data$edu,
-        main = "Distribución de Ingresos por Nivel Educativo",
-        xlab = "Nivel Educativo",
-        ylab = "Ingreso Laboral",
-        col = rainbow(8))
+ggplot(data, aes(x = as.factor(edu), y = inglabo, fill = as.factor(edu))) +
+  geom_boxplot() +
+  scale_fill_brewer(palette = "Set3") +
+  labs(
+    title = "Distribución de Ingresos por Nivel Educativo",
+    x = "Nivel Educativo",
+    y = "Ingreso Laboral",
+    fill = "Nivel Educativo"
+  ) +
+  theme_minimal()
 
 # Boxplots por ciudad
-par(mfrow = c(1, 3))
-boxplot(inglabo ~ sexo, data = filter(data, area == "BOGOTA"),
-        main = "Distribución de Ingresos (Bogotá)",
-        xlab = "Sexo",
-        ylab = "Ingreso Laboral",
-        col = c("lightblue", "pink"))
-boxplot(inglabo ~ sexo, data = filter(data, area == "MEDELLIN"),
-        main = "Distribución de Ingresos (Medellín)",
-        xlab = "Sexo",
-        ylab = "Ingreso Laboral",
-        col = c("lightblue", "pink"))
-boxplot(inglabo ~ sexo, data = filter(data, area == "CALI"),
-        main = "Distribución de Ingresos (Cali)",
-        xlab = "Sexo",
-        ylab = "Ingreso Laboral",
-        col = c("lightblue", "pink"))
+ggplot(filter(data, area %in% c("BOGOTA", "MEDELLIN", "CALI")), aes(x = as.factor(sexo), y = inglabo, fill = as.factor(sexo))) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("lightgreen", "purple")) +
+  facet_wrap(~area) +
+  labs(
+    title = "Distribución de Ingresos por Sexo y Ciudad",
+    x = "Sexo",
+    y = "Ingreso Laboral",
+    fill = "Sexo"
+  ) +
+  theme_minimal()
 
 # -------------------------------------- #
-# Creación  de variables para modelo     # Verificar para usar edad como exper
+# Creación  de variables para modelo     #
 # -------------------------------------- #
 model_data <- data %>%
-  select(inglabo, meses_trab, sexo, edad, anios_edu) %>%
+  select(inglabo, sexo, edad, anios_edu) %>%
   mutate(
-    anios_trab = meses_trab / 12,            # Crear variable de años trabajados
-    anios_trab2 = anios_trab^2,              # Crear variable de años trabajados al cuadrado
-    edad2 = edad^2,
-    log_inglabo = log(inglabo),              # Logaritmo de ingreso laboral
-    log_anios_trab = log(anios_trab),        # Logaritmo de años trabajados
+    edad2 = edad^2,                          # Edad al cuadrado
+    log_inglabo = log(inglabo + 1),              # Logaritmo de ingreso laboral
     log_edad = log(edad),                    # Logaritmo de edad
     log_anios_edu = log(anios_edu + 1)       # Logaritmo de años de educación
   )
@@ -179,23 +174,23 @@ model_data <- data %>%
 # -------------------------------------- #
 
 # Estadísticas descriptivas
-mean_anios_trab <- mean(model_data$anios_trab, na.rm = TRUE)
+mean_edad <- mean(model_data$edad, na.rm = TRUE)
 mean_log_inglabo <- mean(model_data$log_inglabo, na.rm = TRUE)
 
 # Gráficos exploratorios
 par(mfrow = c(1, 1))
 # Scatterplot: Años trabajados vs Ingreso
-plot(model_data$anios_trab, model_data$inglabo,
-     main = "Años Trabajados vs Ingreso Laboral",
-     xlab = "Años Trabajados",
+plot(model_data$edad, model_data$inglabo,
+     main = "Edad vs Ingreso Laboral",
+     xlab = "Edad",
      ylab = "Ingreso Laboral",
      col = "darkgreen", pch = 16)
 
-# Boxplot: Logaritmo de ingreso por Nivel Educativo
-boxplot(model_data$log_inglabo ~ model_data$anios_edu,
-        main = "Log(Ingreso) por Años de Educación",
+# Boxplot: Ingreso por Nivel Educativo
+boxplot(model_data$inglabo ~ model_data$anios_edu,
+        main = "Ingreso por Años de Educación",
         xlab = "Años de Educación",
-        ylab = "Log(Ingreso Laboral)",
+        ylab = "Ingreso Laboral",
         col = rainbow(8))
 
 # -------------------------------------- #
@@ -224,7 +219,7 @@ modelo_loglog <- lm(log_inglabo ~ log_anios_edu + log_edad, data = model_data)
 summary(modelo_loglog)
 
 # Modelo log-lin
-modelo_loglin <- lm(log_inglabo ~ anios_edu + anios_trab + anios_trab2, data = model_data)
+modelo_loglin <- lm(log_inglabo ~ anios_edu + edad + edad2, data = model_data)
 
 # Resumen del modelo log-lin
 summary(modelo_loglin)
@@ -250,11 +245,11 @@ plot(modelo_clasico)
 # Pruebas de hipótesis                   #
 # -------------------------------------- #
 
-# Prueba de hipótesis sobre combinación lineal: H0: anios_edu = anios_trab
-linearHypothesis(modelo_clasico, "anios_edu = anios_trab")
+# Prueba de hipótesis sobre combinación lineal: H0: anios_edu = edad
+linearHypothesis(modelo_clasico, "anios_edu = edad")
 
-# Prueba múltiple: H0: anios_edu = anios_trab y anios_trab2 = 0
-linearHypothesis(modelo_clasico, c("anios_edu = anios_trab", "anios_trab2 = 0"))
+# Prueba múltiple: H0: anios_edu = edad y edad2 = 0
+linearHypothesis(modelo_clasico, c("anios_edu = edad2", "edad2 = 0"))
 
 # -------------------------------------- #
 # Métricas de ajuste del modelo          #
@@ -265,5 +260,3 @@ adj_r_squared <- summary(modelo_clasico)$adj.r.squared
 
 # Estadístico F
 f_statistic <- summary(modelo_clasico)$fstatistic
-
-
